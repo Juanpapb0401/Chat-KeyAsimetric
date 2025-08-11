@@ -4,6 +4,7 @@ import sys
 import json
 import struct
 from cripto_utils import Usuario, cargar_clave_publica, encriptar_mensaje, desencriptar_mensaje
+import os
 
 HOST = '127.0.0.1'
 PORT = 65432
@@ -90,7 +91,7 @@ def start_client(nombre):
     user.clave_publica_destinatario = cargar_clave_publica(public_key_pem_destinatario)
 
     print(f"¡Todo listo! El chat con '{user.nombre_destinatario}' está activo.")
-    print("Escribe tu mensaje y presiona Enter. Comandos: '/showkeys' para ver tus claves, '/exit' para salir.")
+    print("Escribe tu mensaje y presiona Enter. Comandos: '/showkeys' para ver tus claves, '/regenerate' para regenerar llaves, '/exit' para salir.")
 
     receive_thread = threading.Thread(target=receive_messages, args=(client_socket, user))
     receive_thread.daemon = True
@@ -109,6 +110,36 @@ def start_client(nombre):
                     print("----- TU CLAVE PÚBLICA (PEM) -----\n" + pub_pem.decode('utf-8'))
                 except Exception as e:
                     print(f"[ERROR] No se pudieron mostrar las claves: {e}")
+                continue
+            if message_to_send.strip() == '/regenerate':
+                try:
+                    if user.regenerar_llaves():
+                        print("[INFO] Llaves regeneradas y guardadas exitosamente.")
+                        print("[ADVERTENCIA] Las llaves anteriores ya no son válidas para este usuario.")
+                    else:
+                        print("[ERROR] No se pudieron regenerar las llaves.")
+                except Exception as e:
+                    print(f"[ERROR] Error al regenerar llaves: {e}")
+                continue
+            if message_to_send.strip() == '/keyinfo':
+                try:
+                    keys_dir = "keys"
+                    priv_key_file = f"{keys_dir}/{user.nombre}_private.key"
+                    pub_key_file = f"{keys_dir}/{user.nombre}_public.key"
+                    
+                    print(f"\n----- INFORMACIÓN DE LLAVES PARA {user.nombre.upper()} -----")
+                    print(f"Directorio de llaves: {os.path.abspath(keys_dir)}")
+                    print(f"Llave privada: {'✓ Existe' if os.path.exists(priv_key_file) else '✗ No existe'}")
+                    print(f"Llave pública: {'✓ Existe' if os.path.exists(pub_key_file) else '✗ No existe'}")
+                    
+                    if os.path.exists(priv_key_file):
+                        file_size = os.path.getsize(priv_key_file)
+                        print(f"Tamaño archivo privado: {file_size} bytes")
+                    if os.path.exists(pub_key_file):
+                        file_size = os.path.getsize(pub_key_file)
+                        print(f"Tamaño archivo público: {file_size} bytes")
+                except Exception as e:
+                    print(f"[ERROR] No se pudo mostrar la información de llaves: {e}")
                 continue
 
             encrypted_package = encriptar_mensaje(

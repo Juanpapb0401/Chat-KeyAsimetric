@@ -14,13 +14,100 @@ class Usuario:
     """
     def __init__(self, nombre):
         self.nombre = nombre
+        self.clave_privada = None
+        self.clave_publica = None
+        self.clave_publica_destinatario = None
+        self.nombre_destinatario = "Otro Usuario"
+        
+        # Intentar cargar llaves existentes, si no existen, generar nuevas
+        if not self.cargar_llaves():
+            self.generar_nuevas_llaves()
+            self.guardar_llaves()
+
+    def generar_nuevas_llaves(self):
+        """Genera un nuevo par de llaves RSA."""
         self.clave_privada = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048,
         )
         self.clave_publica = self.clave_privada.public_key()
-        self.clave_publica_destinatario = None
-        self.nombre_destinatario = "Otro Usuario"
+
+    def guardar_llaves(self):
+        """Guarda las llaves en archivos separados en formato base64."""
+        try:
+            # Crear directorio de llaves si no existe
+            keys_dir = "keys"
+            if not os.path.exists(keys_dir):
+                os.makedirs(keys_dir)
+            
+            # Serializar llaves
+            priv_key_pem = self.serializar_clave_privada()
+            pub_key_pem = self.serializar_clave_publica()
+            
+            # Convertir a base64
+            priv_key_b64 = base64.b64encode(priv_key_pem).decode('utf-8')
+            pub_key_b64 = base64.b64encode(pub_key_pem).decode('utf-8')
+            
+            # Guardar llave privada
+            priv_key_file = os.path.join(keys_dir, f"{self.nombre}_private.key")
+            with open(priv_key_file, 'w') as f:
+                f.write(priv_key_b64)
+            
+            # Guardar llave pública
+            pub_key_file = os.path.join(keys_dir, f"{self.nombre}_public.key")
+            with open(pub_key_file, 'w') as f:
+                f.write(pub_key_b64)
+            
+            print(f"[INFO] Llaves de {self.nombre} guardadas exitosamente.")
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] No se pudieron guardar las llaves de {self.nombre}: {e}")
+            return False
+
+    def cargar_llaves(self):
+        """Carga las llaves desde archivos si existen."""
+        try:
+            keys_dir = "keys"
+            priv_key_file = os.path.join(keys_dir, f"{self.nombre}_private.key")
+            pub_key_file = os.path.join(keys_dir, f"{self.nombre}_public.key")
+            
+            # Verificar si ambos archivos existen
+            if not (os.path.exists(priv_key_file) and os.path.exists(pub_key_file)):
+                print(f"[INFO] No se encontraron llaves existentes para {self.nombre}. Se generarán nuevas.")
+                return False
+            
+            # Cargar llave privada
+            with open(priv_key_file, 'r') as f:
+                priv_key_b64 = f.read().strip()
+            
+            # Cargar llave pública
+            with open(pub_key_file, 'r') as f:
+                pub_key_b64 = f.read().strip()
+            
+            # Decodificar desde base64
+            priv_key_pem = base64.b64decode(priv_key_b64)
+            pub_key_pem = base64.b64decode(pub_key_b64)
+            
+            # Cargar las llaves
+            self.clave_privada = serialization.load_pem_private_key(
+                priv_key_pem, 
+                password=None
+            )
+            self.clave_publica = serialization.load_pem_public_key(pub_key_pem)
+            
+            print(f"[INFO] Llaves de {self.nombre} cargadas exitosamente desde archivos.")
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] No se pudieron cargar las llaves de {self.nombre}: {e}")
+            return False
+
+    def regenerar_llaves(self):
+        """Fuerza la regeneración de llaves y las guarda."""
+        print(f"[INFO] Regenerando llaves para {self.nombre}...")
+        self.generar_nuevas_llaves()
+        return self.guardar_llaves()
 
     def serializar_clave_publica(self):
         """Convierte la clave pública a bytes para poder ser enviada por la red."""
