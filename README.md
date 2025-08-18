@@ -47,6 +47,7 @@ Cuando ambos se conecten, el servidor intercambiará sus claves públicas y podr
 ## Sistema de Persistencia de Llaves
 
 ### Estructura de Archivos
+
 ```
 keys/
 ├── Alice_private.key    # Llave privada de Alice en base64
@@ -56,12 +57,14 @@ keys/
 ```
 
 ### Comportamiento
+
 1. **Primera Ejecución**: Se generan nuevas llaves RSA-2048 y se almacenan en base64
 2. **Ejecuciones Posteriores**: Se cargan las llaves existentes desde los archivos
 3. **Verificación**: El sistema verifica la integridad de las llaves antes de usarlas
 4. **Regeneración**: Comando `/regenerate` permite crear nuevas llaves cuando sea necesario
 
 ### Seguridad
+
 - Las llaves se almacenan en formato base64 para mayor compatibilidad
 - El directorio `keys/` está excluido del control de versiones (`.gitignore`)
 - Las llaves privadas nunca se transmiten por la red
@@ -86,3 +89,53 @@ keys/
 - Se usa framing de mensajes con longitud-prefijo (uint32 big-endian) para fiabilidad sobre TCP.
 - Las llaves se mantienen entre sesiones para mayor comodidad del usuario.
 - En caso de corrupción de llaves, use `/regenerate` para crear nuevas.
+
+## Versión Sin Cifrado (Para Análisis de Tráfico)
+
+Para análisis de tráfico de red con Wireshark, se incluye una versión sin cifrado que mantiene la misma estructura pero transmite todos los mensajes en texto plano.
+
+### Archivos de la Versión Sin Cifrado
+
+- `servidor_plain.py` - Servidor sin intercambio de claves
+- `client_plain.py` - Cliente que envía mensajes en texto plano
+- `cripto_utils_plain.py` - Utilidades dummy sin criptografía real
+
+### Ejecución de la Versión Sin Cifrado
+
+1. **Inicia el servidor sin cifrado** (puerto 65433):
+
+```bash
+python servidor_plain.py
+```
+
+2. **En dos terminales, inicia los clientes**:
+
+```bash
+python client_plain.py Alice
+python client_plain.py Bob
+```
+
+### Análisis con Wireshark
+
+- **Filtro recomendado**: `tcp.port == 65433`
+- **Búsqueda de texto**: Los mensajes aparecen como JSON legible
+- **Estructura de paquetes**: Todos los mensajes incluyen `"mensaje_plano"` con el texto visible
+- **Handshake**: Se pueden ver los nombres de usuario en texto plano
+
+### Diferencias con la Versión Cifrada
+
+| Aspecto  | Versión Cifrada            | Versión Sin Cifrado  |
+| -------- | -------------------------- | -------------------- |
+| Puerto   | 65432                      | 65433                |
+| Mensajes | Cifrados con AES-GCM + RSA | JSON con texto plano |
+| Claves   | RSA-2048 reales            | Claves dummy         |
+| Firmas   | RSA-PSS reales             | Sin firmas           |
+| Red      | Contenido ilegible         | Totalmente visible   |
+
+### Comandos del Cliente Sin Cifrado
+
+- `/showkeys` - Muestra claves dummy (no reales)
+- `/debug` - Información de debugging para Wireshark
+- `/exit` - Salir
+
+⚠️ **ADVERTENCIA**: La versión sin cifrado es SOLO para fines educativos y análisis de tráfico. NUNCA uses esta versión para comunicaciones reales.
