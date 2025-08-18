@@ -91,26 +91,6 @@ json.value.string contains "Hola"         # Buscar mensajes específicos
 2. Servidor → Cliente: Respuesta con datos del otro usuario
 3. Cliente ↔ Servidor ↔ Cliente: Retransmisión de mensajes
 
-## Experimentos Recomendados
-
-### Experimento 1: Comparar Tráfico Cifrado vs Sin Cifrar
-
-1. Ejecuta el chat cifrado (puerto 65432) y captura tráfico
-2. Ejecuta el chat sin cifrado (puerto 65433) y captura tráfico
-3. Compara los paquetes - en el cifrado solo verás bytes ilegibles
-
-### Experimento 2: Seguir una Conversación
-
-1. En Wireshark: clic derecho en un paquete → "Follow TCP Stream"
-2. Verás toda la conversación entre Alice y Bob en texto plano
-3. Nota cómo se estructura el protocolo con longitudes-prefijo
-
-### Experimento 3: Timing de Mensajes
-
-1. Habilita la columna "Time" en Wireshark
-2. Envía mensajes a intervalos conocidos
-3. Analiza la latencia de red y retransmisión del servidor
-
 ## Comandos de Debug en el Cliente
 
 ```bash
@@ -120,47 +100,4 @@ json.value.string contains "Hola"         # Buscar mensajes específicos
 Hola mundo      # Mensaje normal que aparecerá en Wireshark
 ```
 
-## Qué Buscar en el Análisis
-
-### Seguridad (Versión Sin Cifrado)
-
-- ✅ **Visible**: Nombres de usuarios, mensajes completos, estructura de protocolo
-- ✅ **Interceptable**: Cualquier atacante puede leer todo el tráfico
-- ❌ **Sin protección**: No hay cifrado, firmas ni autenticación
-
-### Protocolo de Red
-
-- ✅ **Framing**: Longitud-prefijo para mensajes completos
-- ✅ **JSON**: Estructura clara y extensible
-- ✅ **TCP**: Transporte confiable
-
-### Comparación Educativa
-
-Usa este análisis para:
-
-1. **Entender la necesidad del cifrado**: Ver lo vulnerable que es el texto plano
-2. **Comprender protocolos**: Observar cómo se estructura la comunicación
-3. **Apreciar la criptografía**: Contrastar con la versión cifrada donde nada es legible
-
-## Exportar Datos para Reportes
-
-### Exportar Paquetes
-
-```
-File → Export Packet Dissections → As Plain Text
-```
-
-### Exportar Conversaciones
-
-```
-Statistics → Conversations → TCP → Copy → All CSV
-```
-
-### Capturar Pantallas
-
-1. Filtra por una conversación específica
-2. Follow TCP Stream para ver el flujo completo
-3. Captura pantallas del contenido JSON legible
-
----
 
