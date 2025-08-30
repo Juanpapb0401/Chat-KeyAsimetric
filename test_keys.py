@@ -1,100 +1,100 @@
 #!/usr/bin/env python3
 """
-Script de prueba para demostrar el sistema de persistencia de llaves.
-Este script crea usuarios, genera llaves, las guarda, las carga y las regenera.
+Test script to demonstrate the key persistence system.
+This script creates users, generates keys, saves them, loads them and regenerates them.
 """
 
 import os
 import shutil
-from cripto_utils import Usuario
+from crypto_utils import User
 
-def limpiar_directorio_keys():
-    """Limpia el directorio de llaves para pruebas."""
+def clean_keys_directory():
+    """Cleans the keys directory for testing."""
     if os.path.exists("keys"):
         shutil.rmtree("keys")
-        print("[INFO] Directorio 'keys' eliminado para pruebas limpias.")
+        print("[INFO] 'keys' directory removed for clean testing.")
 
-def mostrar_estado_llaves(nombre):
-    """Muestra el estado de las llaves para un usuario."""
+def show_keys_status(name):
+    """Shows the status of keys for a user."""
     keys_dir = "keys"
-    priv_key_file = os.path.join(keys_dir, f"{nombre}_private.key")
-    pub_key_file = os.path.join(keys_dir, f"{nombre}_public.key")
+    priv_key_file = os.path.join(keys_dir, f"{name}_private.key")
+    pub_key_file = os.path.join(keys_dir, f"{name}_public.key")
     
-    print(f"\n----- ESTADO DE LLAVES PARA {nombre.upper()} -----")
-    print(f"Directorio de llaves: {os.path.abspath(keys_dir)}")
-    print(f"Llave privada: {'✓ Existe' if os.path.exists(priv_key_file) else '✗ No existe'}")
-    print(f"Llave pública: {'✓ Existe' if os.path.exists(pub_key_file) else '✗ No existe'}")
+    print(f"\n----- KEY STATUS FOR {name.upper()} -----")
+    print(f"Keys directory: {os.path.abspath(keys_dir)}")
+    print(f"Private key: {'✓ Exists' if os.path.exists(priv_key_file) else '✗ Does not exist'}")
+    print(f"Public key: {'✓ Exists' if os.path.exists(pub_key_file) else '✗ Does not exist'}")
     
     if os.path.exists(priv_key_file):
         file_size = os.path.getsize(priv_key_file)
-        print(f"Tamaño archivo privado: {file_size} bytes")
+        print(f"Private file size: {file_size} bytes")
     if os.path.exists(pub_key_file):
         file_size = os.path.getsize(pub_key_file)
-        print(f"Tamaño archivo público: {file_size} bytes")
+        print(f"Public file size: {file_size} bytes")
 
-def test_persistencia_llaves():
-    """Prueba completa del sistema de persistencia de llaves."""
-    print("=== PRUEBA DEL SISTEMA DE PERSISTENCIA DE LLAVES ===\n")
+def test_key_persistence():
+    """Complete test of the key persistence system."""
+    print("=== KEY PERSISTENCE SYSTEM TEST ===\n")
     
-    # Limpiar directorio para pruebas
-    limpiar_directorio_keys()
+    # Clean directory for testing
+    clean_keys_directory()
     
-    print("1. CREANDO USUARIO ALICE (primera vez - genera llaves)")
-    alice1 = Usuario("Alice")
-    print(f"   - Clave privada generada: {'✓' if alice1.clave_privada else '✗'}")
-    print(f"   - Clave pública generada: {'✓' if alice1.clave_publica else '✗'}")
+    print("1. CREATING USER ALICE (first time - generates keys)")
+    alice1 = User("Alice")
+    print(f"   - Private key generated: {'✓' if alice1.private_key else '✗'}")
+    print(f"   - Public key generated: {'✓' if alice1.public_key else '✗'}")
     
-    # Guardar llaves de Alice
-    alice1.guardar_llaves()
-    mostrar_estado_llaves("Alice")
+    # Save Alice's keys
+    alice1.save_keys()
+    show_keys_status("Alice")
     
-    print("\n2. CREANDO USUARIO BOB (primera vez - genera llaves)")
-    bob1 = Usuario("Bob")
-    print(f"   - Clave privada generada: {'✓' if bob1.clave_privada else '✗'}")
-    print(f"   - Clave pública generada: {'✓' if bob1.clave_publica else '✗'}")
+    print("\n2. CREATING USER BOB (first time - generates keys)")
+    bob1 = User("Bob")
+    print(f"   - Private key generated: {'✓' if bob1.private_key else '✗'}")
+    print(f"   - Public key generated: {'✓' if bob1.public_key else '✗'}")
     
-    # Guardar llaves de Bob
-    bob1.guardar_llaves()
-    mostrar_estado_llaves("Bob")
+    # Save Bob's keys
+    bob1.save_keys()
+    show_keys_status("Bob")
     
-    print("\n3. RECREANDO USUARIO ALICE (segunda vez - carga llaves existentes)")
-    alice2 = Usuario("Alice")
-    print(f"   - Clave privada cargada: {'✓' if alice2.clave_privada else '✗'}")
-    print(f"   - Clave pública cargada: {'✓' if alice2.clave_publica else '✗'}")
+    print("\n3. RECREATING USER ALICE (second time - loads existing keys)")
+    alice2 = User("Alice")
+    print(f"   - Private key loaded: {'✓' if alice2.private_key else '✗'}")
+    print(f"   - Public key loaded: {'✓' if alice2.public_key else '✗'}")
     
-    print("\n4. RECREANDO USUARIO BOB (segunda vez - carga llaves existentes)")
-    bob2 = Usuario("Bob")
-    print(f"   - Clave privada cargada: {'✓' if bob2.clave_privada else '✗'}")
-    print(f"   - Clave pública cargada: {'✓' if bob2.clave_publica else '✗'}")
+    print("\n4. RECREATING USER BOB (second time - loads existing keys)")
+    bob2 = User("Bob")
+    print(f"   - Private key loaded: {'✓' if bob2.private_key else '✗'}")
+    print(f"   - Public key loaded: {'✓' if bob2.public_key else '✗'}")
     
-    print("\n5. VERIFICANDO QUE LAS LLAVES SEAN LAS MISMAS")
-    # Comparar claves públicas (más fácil de verificar)
-    alice_pub1 = alice1.serializar_clave_publica()
-    alice_pub2 = alice2.serializar_clave_publica()
-    bob_pub1 = bob1.serializar_clave_publica()
-    bob_pub2 = bob2.serializar_clave_publica()
+    print("\n5. VERIFYING THAT KEYS ARE THE SAME")
+    # Compare public keys (easier to verify)
+    alice_pub1 = alice1.serialize_public_key()
+    alice_pub2 = alice2.serialize_public_key()
+    bob_pub1 = bob1.serialize_public_key()
+    bob_pub2 = bob2.serialize_public_key()
     
-    print(f"   - Alice: {'✓ Mismas llaves' if alice_pub1 == alice_pub2 else '✗ Llaves diferentes'}")
-    print(f"   - Bob: {'✓ Mismas llaves' if bob_pub1 == bob_pub2 else '✗ Llaves diferentes'}")
+    print(f"   - Alice: {'✓ Same keys' if alice_pub1 == alice_pub2 else '✗ Different keys'}")
+    print(f"   - Bob: {'✓ Same keys' if bob_pub1 == bob_pub2 else '✗ Different keys'}")
     
-    print("\n6. REGENERANDO LLAVES DE ALICE")
-    alice2.regenerar_llaves()
-    mostrar_estado_llaves("Alice")
+    print("\n6. REGENERATING ALICE'S KEYS")
+    alice2.regenerate_keys()
+    show_keys_status("Alice")
     
-    print("\n7. VERIFICANDO QUE LAS NUEVAS LLAVES SEAN DIFERENTES")
-    alice_pub3 = alice2.serializar_clave_publica()
-    print(f"   - Alice: {'✓ Llaves diferentes' if alice_pub1 != alice_pub3 else '✗ Mismas llaves'}")
+    print("\n7. VERIFYING THAT NEW KEYS ARE DIFFERENT")
+    alice_pub3 = alice2.serialize_public_key()
+    print(f"   - Alice: {'✓ Different keys' if alice_pub1 != alice_pub3 else '✗ Same keys'}")
     
-    print("\n=== PRUEBA COMPLETADA ===")
-    print("\nPara probar el chat completo:")
-    print("1. Ejecuta: python servidor.py")
-    print("2. En otra terminal: python client.py Alice")
-    print("3. En otra terminal: python client.py Bob")
-    print("\nComandos disponibles en el chat:")
-    print("- /showkeys: Ver tus llaves")
-    print("- /regenerate: Regenerar llaves")
-    print("- /keyinfo: Información de llaves")
-    print("- /exit: Salir")
+    print("\n=== TEST COMPLETED ===")
+    print("\nTo test the complete chat:")
+    print("1. Run: python server.py")
+    print("2. In another terminal: python client.py Alice")
+    print("3. In another terminal: python client.py Bob")
+    print("\nAvailable commands in chat:")
+    print("- /showkeys: View your keys")
+    print("- /regenerate: Regenerate keys")
+    print("- /keyinfo: Key information")
+    print("- /exit: Exit")
 
 if __name__ == "__main__":
-    test_persistencia_llaves() 
+    test_key_persistence() 

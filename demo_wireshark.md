@@ -1,103 +1,101 @@
-# Guía de Análisis con Wireshark - Chat Sin Cifrado
+# Wireshark Analysis Guide - Unencrypted Chat
 
-Esta guía te ayudará a analizar el tráfico de red del chat sin cifrado usando Wireshark.
+This guide will help you analyze the network traffic of the unencrypted chat using Wireshark.
 
-## Configuración Inicial
+## Initial Setup
 
-### 1. Preparar el Entorno
+### 1. Prepare the Environment
 
 ```bash
-# Terminal 1: Servidor sin cifrado
-python servidor_plain.py
+# Terminal 1: Unencrypted server
+python server_plain.py
 
-# Terminal 2: Cliente Alice
+# Terminal 2: Alice client
 python client_plain.py Alice
 
-# Terminal 3: Cliente Bob
+# Terminal 3: Bob client
 python client_plain.py Bob
 ```
 
-### 2. Configurar Wireshark
+### 2. Configure Wireshark
 
-1. **Abrir Wireshark** como administrador
-2. **Seleccionar interfaz**: Loopback (127.0.0.1) o "lo" en Linux/macOS
-3. **Aplicar filtro**: `tcp.port == 65433`
-4. **Iniciar captura**
+1. **Open Wireshark** as administrator
+2. **Select interface**: Loopback (127.0.0.1) or "lo" on Linux/macOS
+3. **Apply filter**: `tcp.port == 65433`
+4. **Start capture**
 
-## Patrones de Tráfico a Observar
+## Traffic Patterns to Observe
 
-### Handshake (Conexión Inicial)
+### Handshake (Initial Connection)
 
-Busca estos paquetes al inicio:
+Look for these packets at the beginning:
 
 ```json
 {
-  "nombre": "Alice",
+  "name": "Alice",
   "public_key_pem": "DUMMY_PUBLIC_KEY_FOR_Alice_PLAIN_MODE",
   "mode": "PLAIN_TEXT",
   "encryption": "NONE"
 }
 ```
 
-### Mensajes de Chat
+### Chat Messages
 
-Cada mensaje aparece como JSON legible:
+Each message appears as readable JSON:
 
 ```json
 {
   "version": 1,
   "encryption": "NONE",
   "message_type": "PLAIN_TEXT",
-  "mensaje_plano": "Hola Bob, este mensaje es completamente visible",
+  "plain_message": "Hello Bob, this message is completely visible",
   "timestamp": "a1b2c3d4",
   "dummy_signature": "NO_SIGNATURE_PLAIN_MODE"
 }
 ```
 
-## Filtros Útiles de Wireshark
+## Useful Wireshark Filters
 
-### Filtros Básicos
-
-```
-tcp.port == 65433                          # Todo el tráfico del chat
-tcp.port == 65433 and tcp.len > 0         # Solo paquetes con datos
-frame contains "mensaje_plano"             # Paquetes con mensajes de chat
-frame contains "Alice"                     # Paquetes que mencionan a Alice
-```
-
-### Filtros Avanzados
+### Basic Filters
 
 ```
-tcp.port == 65433 and tcp.stream eq 0     # Solo la primera conexión TCP
-tcp.port == 65433 and tcp.stream eq 1     # Solo la segunda conexión TCP
-json.value.string contains "Hola"         # Buscar mensajes específicos
+tcp.port == 65433                          # All chat traffic
+tcp.port == 65433 and tcp.len > 0         # Only packets with data
+frame contains "plain_message"             # Packets with chat messages
+frame contains "Alice"                     # Packets mentioning Alice
 ```
 
-## Estructura de los Paquetes
+### Advanced Filters
 
-### 1. Framing TCP
+```
+tcp.port == 65433 and tcp.stream eq 0     # Only the first TCP connection
+tcp.port == 65433 and tcp.stream eq 1     # Only the second TCP connection
+json.value.string contains "Hello"        # Search for specific messages
+```
 
-- **4 bytes**: Longitud del mensaje (uint32 big-endian)
-- **N bytes**: Payload JSON en UTF-8
+## Packet Structure
 
-### 2. Contenido JSON
+### 1. TCP Framing
 
-- **Handshake**: nombre, clave dummy, modo
-- **Mensajes**: versión, tipo, mensaje en claro, timestamp
+- **4 bytes**: Message length (uint32 big-endian)
+- **N bytes**: JSON payload in UTF-8
 
-### 3. Flujo de Comunicación
+### 2. JSON Content
 
-1. Cliente → Servidor: Handshake con nombre
-2. Servidor → Cliente: Respuesta con datos del otro usuario
-3. Cliente ↔ Servidor ↔ Cliente: Retransmisión de mensajes
+- **Handshake**: name, dummy key, mode
+- **Messages**: version, type, plain message, timestamp
 
-## Comandos de Debug en el Cliente
+### 3. Communication Flow
+
+1. Client → Server: Handshake with name
+2. Server → Client: Response with other user's data
+3. Client ↔ Server ↔ Client: Message relay
+
+## Debug Commands in the Client
 
 ```bash
-# En el cliente, prueba estos comandos:
-/debug          # Muestra información útil para Wireshark
-/showkeys       # Muestra las claves dummy
-Hola mundo      # Mensaje normal que aparecerá en Wireshark
+# In the client, try these commands:
+/debug          # Shows useful information for Wireshark
+/showkeys       # Shows dummy keys
+Hello world     # Normal message that will appear in Wireshark
 ```
-
-

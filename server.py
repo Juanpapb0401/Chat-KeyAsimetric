@@ -3,27 +3,27 @@ import threading
 import json
 import struct
 
-HOST = '127.0.0.1'  # La dirección IP del servidor (localhost)
-PORT = 65432        # Puerto para escuchar
+HOST = '127.0.0.1'  # Server IP address (localhost)
+PORT = 65432        # Port to listen on
 
 clients = []
 public_keys = {}
-lock = threading.Lock()  # Bloqueo para acceso seguro a recursos compartidos
+lock = threading.Lock()  # Lock for safe access to shared resources
 
 
 def recv_exact(conn, num_bytes):
-    """Recibe exactamente num_bytes o levanta ConnectionError."""
+    """Receives exactly num_bytes or raises ConnectionError."""
     buf = bytearray()
     while len(buf) < num_bytes:
         chunk = conn.recv(num_bytes - len(buf))
         if not chunk:
-            raise ConnectionError("Conexión cerrada durante recepción")
+            raise ConnectionError("Connection closed during reception")
         buf.extend(chunk)
     return bytes(buf)
 
 
 def recv_frame(conn):
-    """Recibe un mensaje con framing longitud-prefijo (uint32 big-endian)."""
+    """Receives a message with length-prefix framing (uint32 big-endian)."""
     header = recv_exact(conn, 4)
     (length,) = struct.unpack('!I', header)
     if length == 0:
@@ -37,50 +37,50 @@ def send_frame(conn, payload_bytes):
 
 
 def handle_client(conn, addr):
-    """Maneja la conexión de un cliente de forma segura."""
-    print(f"[NUEVA CONEXIÓN] {addr} conectado.")
+    """Handles a client connection securely."""
+    print(f"[NEW CONNECTION] {addr} connected.")
     client_name_local = ""
 
-    # Recibir los datos iniciales (nombre y clave) con framing
+    # Receive initial data (name and key) with framing
     try:
         data_bytes = recv_frame(conn)
         if not data_bytes:
-            raise ConnectionError("Cliente desconectado antes de enviar datos.")
+            raise ConnectionError("Client disconnected before sending data.")
 
         client_data = json.loads(data_bytes.decode('utf-8'))
-        nombre = client_data['nombre']
-        client_name_local = nombre
+        name = client_data['name']
+        client_name_local = name
         public_key_pem = client_data['public_key_pem'].encode('utf-8')
 
-        # Usar un Lock para modificar las listas de forma segura
+        # Use a Lock to safely modify the lists
         with lock:
-            clients.append((conn, nombre))
-            public_keys[nombre] = public_key_pem
-            print(f"Datos y clave pública de {nombre} recibidos.")
+            clients.append((conn, name))
+            public_keys[name] = public_key_pem
+            print(f"Data and public key from {name} received.")
 
-            # Si ya hay dos clientes, intercambiar sus claves públicas
+            # If there are already two clients, exchange their public keys
             if len(clients) == 2:
                 (conn1, name1), (conn2, name2) = clients
 
-                print("Dos clientes conectados. Intercambiando datos...")
-                # Enviar a cada cliente el nombre y la clave del otro
-                paquete_para_1 = json.dumps({"nombre": name2, "public_key_pem": public_keys[name2].decode('utf-8')}).encode('utf-8')
-                paquete_para_2 = json.dumps({"nombre": name1, "public_key_pem": public_keys[name1].decode('utf-8')}).encode('utf-8')
+                print("Two clients connected. Exchanging data...")
+                # Send each client the name and key of the other
+                package_for_1 = json.dumps({"name": name2, "public_key_pem": public_keys[name2].decode('utf-8')}).encode('utf-8')
+                package_for_2 = json.dumps({"name": name1, "public_key_pem": public_keys[name1].decode('utf-8')}).encode('utf-8')
 
-                send_frame(conn1, paquete_para_1)
-                send_frame(conn2, paquete_para_2)
-                print("Datos intercambiados.")
+                send_frame(conn1, package_for_1)
+                send_frame(conn2, package_for_2)
+                print("Data exchanged.")
 
     except (json.JSONDecodeError, KeyError, ConnectionError) as e:
-        print(f"[ERROR de Handshake] {e} de {addr}. Cerrando conexión.")
+        print(f"[HANDSHAKE ERROR] {e} from {addr}. Closing connection.")
         conn.close()
         return
     except Exception as e:
-        print(f"[ERROR INESPERADO] {e}")
+        print(f"[UNEXPECTED ERROR] {e}")
         conn.close()
         return
 
-    # Bucle para retransmitir mensajes cifrados con framing
+    # Loop to relay encrypted messages with framing
     while True:
         try:
             message = recv_frame(conn)
@@ -93,15 +93,15 @@ def handle_client(conn, addr):
                 (conn1, name1), (conn2, name2) = clients
 
             target_conn = conn2 if conn == conn1 else conn1
-            print("Retransmitiendo mensaje...")
+            print("Relaying message...")
             send_frame(target_conn, message)
 
         except Exception:
             break
 
-    print(f"[CONEXIÓN CERRADA] {addr}")
+    print(f"[CONNECTION CLOSED] {addr}")
     with lock:
-        # Eliminar al cliente de las listas al desconectarse
+        # Remove client from lists when disconnecting
         for i, (client_conn, client_name) in enumerate(clients):
             if client_conn == conn:
                 clients.pop(i)
@@ -116,7 +116,7 @@ def start_server():
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind((HOST, PORT))
     server.listen(2)
-    print(f"[ESCUCHANDO] El servidor está escuchando en {HOST}:{PORT}")
+    print(f"[LISTENING] Server is listening on {HOST}:{PORT}")
 
     try:
         while True:
@@ -124,7 +124,7 @@ def start_server():
             thread = threading.Thread(target=handle_client, args=(conn, addr))
             thread.start()
     except KeyboardInterrupt:
-        print("\n[CERRANDO SERVIDOR]")
+        print("\n[CLOSING SERVER]")
     finally:
         for conn, _ in clients:
             conn.close()

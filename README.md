@@ -1,141 +1,184 @@
-# Chat con Criptografía de Clave Asimétrica
+# Chat with Asymmetric Key Cryptography
 
-Implementa un chat punto a punto (vía servidor relay) usando cifrado híbrido con RSA-OAEP + AES-GCM y firmas digitales RSA-PSS para autenticidad e integridad. El servidor solo retransmite bytes, no conoce el contenido.
+This project implements a point-to-point chat system with **two versions** for educational comparison:
 
-## Características de Seguridad
+1. **🔒 Secure Version**: Uses hybrid encryption with RSA-OAEP + AES-GCM and RSA-PSS digital signatures
+2. **🔓 Unencrypted Version**: Transmits messages in plain text for network traffic analysis with Wireshark
 
-- **Persistencia de Llaves**: Las llaves criptográficas se almacenan localmente en formato base64
-- **Verificación de Llaves Existentes**: El sistema verifica si existen llaves antes de generar nuevas
-- **Almacenamiento Seguro**: Las llaves se guardan en un directorio `keys/` separado
-- **Regeneración de Llaves**: Capacidad de regenerar llaves cuando sea necesario
+Both versions use the same relay server architecture where the server only forwards messages without reading content (in the encrypted version).
 
-## Requisitos
+## 🚀 Quick Start
+
+### Requirements
 
 - Python 3.10+
-- Dependencias en `requirements.txt`
+- Dependencies in `requirements.txt`
 
-## Instalación
+### Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Ejecución
+### Choose Your Version
 
-1. Inicia el servidor:
+| Version            | Purpose                    | Files                                 | Port  |
+| ------------------ | -------------------------- | ------------------------------------- | ----- |
+| 🔒 **Encrypted**   | Secure communication       | `server.py` + `client.py`             | 65432 |
+| 🔓 **Unencrypted** | Traffic analysis/education | `server_ plain.py` + `client_plain.py` | 65433 |
+
+---
+
+## 🔒 Encrypted Version (Secure)
+
+### How to Run
+
+1. **Start the encrypted server:**
 
 ```bash
-python servidor.py
+python server.py
 ```
 
-2. En dos terminales aparte, inicia dos clientes (ejemplo con nombres Alice y Bob):
+2. **Start two clients in separate terminals:**
 
 ```bash
 python client.py Alice
 python client.py Bob
 ```
 
-Cuando ambos se conecten, el servidor intercambiará sus claves públicas y podrán chatear.
+### Security Features
 
-## Comandos del Cliente
+- **Key Persistence**: Cryptographic keys are stored locally in base64 format
+- **Existing Key Verification**: The system checks if keys exist before generating new ones
+- **Secure Storage**: Keys are saved in a separate `keys/` directory
+- **Key Regeneration**: Ability to regenerate keys when needed
 
-- `/showkeys`: Imprime en consola tu clave privada (PEM, sin cifrar) y tu clave pública (PEM). Úsalo solo con fines educativos.
-- `/regenerate`: Regenera nuevas llaves criptográficas y las guarda localmente.
-- `/keyinfo`: Muestra información sobre el estado de las llaves almacenadas.
-- `/exit`: Cierra el cliente.
+### Client Commands (Encrypted Version)
 
-## Sistema de Persistencia de Llaves
+- `/showkeys`: Prints your private key (PEM, unencrypted) and public key (PEM) to console. Use only for educational purposes.
+- `/regenerate`: Regenerates new cryptographic keys and saves them locally.
+- `/keyinfo`: Shows information about the status of stored keys.
+- `/exit`: Closes the client.
 
-### Estructura de Archivos
+---
 
-```
-keys/
-├── Alice_private.key    # Llave privada de Alice en base64
-├── Alice_public.key     # Llave pública de Alice en base64
-├── Bob_private.key      # Llave privada de Bob en base64
-└── Bob_public.key       # Llave pública de Bob en base64
-```
+## 🔓 Unencrypted Version (Educational)
 
-### Comportamiento
+⚠️ **WARNING**: This version is **ONLY** for educational purposes and traffic analysis. **NEVER** use for real communications.
 
-1. **Primera Ejecución**: Se generan nuevas llaves RSA-2048 y se almacenan en base64
-2. **Ejecuciones Posteriores**: Se cargan las llaves existentes desde los archivos
-3. **Verificación**: El sistema verifica la integridad de las llaves antes de usarlas
-4. **Regeneración**: Comando `/regenerate` permite crear nuevas llaves cuando sea necesario
+### How to Run
 
-### Seguridad
-
-- Las llaves se almacenan en formato base64 para mayor compatibilidad
-- El directorio `keys/` está excluido del control de versiones (`.gitignore`)
-- Las llaves privadas nunca se transmiten por la red
-- Solo se intercambian llaves públicas durante el handshake
-
-## Modelo criptográfico
-
-- Cada cliente genera un par RSA (2048 bits) al inicio de la sesión.
-- Handshake: el cliente envía `nombre` y su clave pública PEM al servidor; este los intercambia entre los dos clientes conectados.
-- Al enviar un mensaje:
-  - Se genera una clave simétrica AES-256 aleatoria por mensaje.
-  - Se cifra el mensaje con AES-GCM (nonce aleatorio).
-  - La clave AES se envuelve con RSA-OAEP usando la clave pública del destinatario.
-  - Se firma el paquete (sin firma) con RSA-PSS usando la clave privada del emisor.
-- Al recibir un mensaje:
-  - Se verifica la firma con la clave pública del emisor (recibida en el handshake).
-  - Se desencripta la clave AES con la clave privada del destinatario y luego el mensaje con AES-GCM.
-
-## Notas
-
-- El servidor actual empareja exactamente a dos clientes y retransmite entre ellos.
-- Se usa framing de mensajes con longitud-prefijo (uint32 big-endian) para fiabilidad sobre TCP.
-- Las llaves se mantienen entre sesiones para mayor comodidad del usuario.
-- En caso de corrupción de llaves, use `/regenerate` para crear nuevas.
-
-## Versión Sin Cifrado (Para Análisis de Tráfico)
-
-Para análisis de tráfico de red con Wireshark, se incluye una versión sin cifrado que mantiene la misma estructura pero transmite todos los mensajes en texto plano.
-
-### Archivos de la Versión Sin Cifrado
-
-- `servidor_plain.py` - Servidor sin intercambio de claves
-- `client_plain.py` - Cliente que envía mensajes en texto plano
-- `cripto_utils_plain.py` - Utilidades dummy sin criptografía real
-
-### Ejecución de la Versión Sin Cifrado
-
-1. **Inicia el servidor sin cifrado** (puerto 65433):
+1. **Start the unencrypted server:**
 
 ```bash
-python servidor_plain.py
+python server_plain.py
 ```
 
-2. **En dos terminales, inicia los clientes**:
+2. **Start two clients in separate terminals:**
 
 ```bash
 python client_plain.py Alice
 python client_plain.py Bob
 ```
 
-### Análisis con Wireshark
+### Purpose
 
-- **Filtro recomendado**: `tcp.port == 65433`
-- **Búsqueda de texto**: Los mensajes aparecen como JSON legible
-- **Estructura de paquetes**: Todos los mensajes incluyen `"mensaje_plano"` con el texto visible
-- **Handshake**: Se pueden ver los nombres de usuario en texto plano
+This version demonstrates the **risks of unencrypted communication** by:
 
-### Diferencias con la Versión Cifrada
+- Transmitting all messages in **plain text**
+- Making usernames, messages, and protocol structure **completely visible** in network traffic
+- Providing no authentication or integrity protection
 
-| Aspecto  | Versión Cifrada            | Versión Sin Cifrado  |
-| -------- | -------------------------- | -------------------- |
-| Puerto   | 65432                      | 65433                |
-| Mensajes | Cifrados con AES-GCM + RSA | JSON con texto plano |
-| Claves   | RSA-2048 reales            | Claves dummy         |
-| Firmas   | RSA-PSS reales             | Sin firmas           |
-| Red      | Contenido ilegible         | Totalmente visible   |
+### Client Commands (Unencrypted Version)
 
-### Comandos del Cliente Sin Cifrado
+- `/showkeys`: Shows dummy keys (not real cryptography)
+- `/debug`: Shows debugging information useful for Wireshark analysis
+- `/exit`: Exit
 
-- `/showkeys` - Muestra claves dummy (no reales)
-- `/debug` - Información de debugging para Wireshark
-- `/exit` - Salir
+### Wireshark Analysis
 
-⚠️ **ADVERTENCIA**: La versión sin cifrado es SOLO para fines educativos y análisis de tráfico. NUNCA uses esta versión para comunicaciones reales.
+- **Recommended filter**: `tcp.port == 65433`
+- **Text search**: Messages appear as readable JSON with `"plain_message"` field
+- **Packet structure**: All data is completely visible in network capture
+- See `demo_wireshark.md` for detailed analysis guide
+
+---
+
+## Key Persistence System
+
+### File Structure
+
+```
+keys/
+├── Alice_private.key    # Alice's private key in base64
+├── Alice_public.key     # Alice's public key in base64
+├── Bob_private.key      # Bob's private key in base64
+└── Bob_public.key       # Bob's public key in base64
+```
+
+### Behavior
+
+1. **First Execution**: New RSA-2048 keys are generated and stored in base64
+2. **Subsequent Executions**: Existing keys are loaded from files
+3. **Verification**: The system verifies key integrity before using them
+4. **Regeneration**: `/regenerate` command allows creating new keys when needed
+
+### Security
+
+- Keys are stored in base64 format for better compatibility
+- The `keys/` directory is excluded from version control (`.gitignore`)
+- Private keys are never transmitted over the network
+- Only public keys are exchanged during handshake
+
+## Cryptographic Model
+
+- Each client generates an RSA pair (2048 bits) at session start.
+- Handshake: the client sends `name` and its PEM public key to the server; the server exchanges them between the two connected clients.
+- When sending a message:
+  - A random AES-256 symmetric key is generated per message.
+  - The message is encrypted with AES-GCM (random nonce).
+  - The AES key is wrapped with RSA-OAEP using the recipient's public key.
+  - The package (without signature) is signed with RSA-PSS using the sender's private key.
+- When receiving a message:
+  - The signature is verified with the sender's public key (received in handshake).
+  - The AES key is decrypted with the recipient's private key and then the message with AES-GCM.
+
+## 📊 Version Comparison
+
+| Aspect         | 🔒 Encrypted Version         | 🔓 Unencrypted Version                |
+| -------------- | ---------------------------- | ------------------------------------- |
+| **Port**       | 65432                        | 65433                                 |
+| **Files**      | `server.py` + `client.py`    | `server_plain.py` + `client_plain.py` |
+| **Messages**   | Encrypted with AES-GCM + RSA | JSON with plain text                  |
+| **Keys**       | Real RSA-2048                | Dummy keys                            |
+| **Signatures** | Real RSA-PSS                 | No signatures                         |
+| **Network**    | Unreadable content           | Completely visible                    |
+| **Purpose**    | Secure communication         | Educational analysis                  |
+
+## 🛠️ Technical Details (Encrypted Version)
+
+### Cryptographic Model
+
+- Each client generates an RSA pair (2048 bits) at session start.
+- Handshake: the client sends `name` and its PEM public key to the server; the server exchanges them between the two connected clients.
+- When sending a message:
+  - A random AES-256 symmetric key is generated per message.
+  - The message is encrypted with AES-GCM (random nonce).
+  - The AES key is wrapped with RSA-OAEP using the recipient's public key.
+  - The package (without signature) is signed with RSA-PSS using the sender's private key.
+- When receiving a message:
+  - The signature is verified with the sender's public key (received in handshake).
+  - The AES key is decrypted with the recipient's private key and then the message with AES-GCM.
+
+### Implementation Notes
+
+- The current server pairs exactly two clients and relays between them.
+- Message framing with length-prefix (uint32 big-endian) is used for reliability over TCP.
+- Keys are maintained between sessions for user convenience.
+- In case of key corruption, use `/regenerate` to create new ones.
+
+## 📚 Additional Resources
+
+- **`Flows.md`**: Detailed system architecture and communication flows
+- **`demo_wireshark.md`**: Complete guide for network traffic analysis
+- **`test_keys.py`**: Script to test the key persistence system
